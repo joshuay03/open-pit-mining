@@ -248,13 +248,13 @@ class Mine(search.Problem):
         
         if state.ndim == 2: #2D mine, Get x loc
             for x in range(len(state)):
-                if not is_dangerous(state[x]):
+                if not self.is_dangerous(state[x]):
                     L.append(x)
 
         else: #3D mine, Get x,y loc
             for x in range(len(state)):
                 for y in range(len(state[0])):
-                    if not is_dangerous(state[x,y]):
+                    if not self.is_dangerous(state[x,y]):
                         L.append([x,y])
         
         return L
@@ -339,8 +339,16 @@ class Mine(search.Problem):
         
         No loops needed in the implementation!        
         '''
+        pay_off = 0
         # convert to np.array in order to use tuple addressing
         # state[loc]   where loc is a tuple
+        state = np.array(state)
+        if state.ndim == 2: #3D mine
+            #column = [-0.814  0.637  1.824 -0.563]
+            results = self.result
+        else:
+            #column = [ 0.455  0.579 -0.54  -0.995 -0.771]
+            results = self.result
 
         raise NotImplementedError
 
@@ -352,16 +360,30 @@ class Mine(search.Problem):
         No loops needed in the implementation!
         '''
         # convert to np.array in order to use numpy operators
-        state = np.array(state)    
+        state = np.array(state)  
+        #neighbours provide a list of neighbouring surface coordinates (x) 2d, (x,y) 3d  
         neighbours = self.surface_neigbhours(state) 
+        neighbours = np.array(neighbours)
 
-        #duplicate neighbour list for state for subtraction
-        state_values = np.full(len(neighbours),state)
-        values = []
-        values.append(abs(state_values[:]-neighbours[:]))
-        # abs_neighbours = np.abs(neighbours)
-        np_values = np.array(values) 
-        if (np_values > self.dig_tolerance):
+        if neighbours.ndim == 1: #2D mine with x coor
+            #duplicate neighbour list with state value for subtraction
+            #state_values = np.full(len(neighbours),state)
+            state_values = np.broadcast_to(state,shape = neighbours.shape)
+            values = []
+            values.append(abs(state_values[:]-self.underground[neighbours[:]]))
+            # abs_neighbours = np.abs(neighbours)
+            np_values = np.array(values) 
+
+        else:            #3D mine with x,y coor
+            state_values = np.broadcast_to(state,shape = neighbours.shape)
+            values = []
+            values.append(abs(state_values[:]-self.underground[neighbours[:]]))
+            np_values = np.array(values)           
+
+        #if any value in its neighbour breaches True, return True
+
+        breach = (np_values[:] > self.dig_tolerance)
+        if (breach == True):
             return True
 
         return False
