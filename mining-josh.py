@@ -302,9 +302,13 @@ class Mine(search.Problem):
         state = np.array(state)
         # state[loc]   where loc is a tuple
         if state.ndim == 1:
-            return np.sum(np.where(np.broadcast_to(np.arange(1, self._underground.shape[1] + 1, 1) <= state[:, np.newaxis], self._underground.shape), self._underground, 0))
+            return np.sum(np.where(np.broadcast_to(np.arange(1, self._underground.shape[1] + 1, 1)
+                                                   <= state[:, np.newaxis],
+                                                   self._underground.shape), self._underground, 0))
         else:
-            return np.sum(np.where(np.broadcast_to(np.arange(1, self._underground.shape[2] + 1, 1) <= state[:, :, np.newaxis], self._underground.shape), self._underground, 0))
+            return np.sum(np.where(np.broadcast_to(np.arange(1, self._underground.shape[2] + 1, 1)
+                                                   <= state[:, :, np.newaxis],
+                                                   self._underground.shape), self._underground, 0))
 
     def is_dangerous(self, state):
         """
@@ -315,7 +319,20 @@ class Mine(search.Problem):
         # convert to np.array in order to use numpy operators
         state = np.array(state)
 
-        return np.any(np.where(np.abs(state[1:] - state[:-1]) > self.dig_tolerance, np.abs(state[1:] - state[:-1]), 0))
+        if state.ndim == 1:
+            sum_column_states = np.sum(np.where(np.where(np.broadcast_to(np.arange(1, self._underground.shape[1] + 1, 1)
+                                                                         == state[:, np.newaxis],
+                                                                         self._underground.shape), self._underground, 0)
+                                                , self.cumsum_mine, 0), axis=0)
+            return np.any(np.where(np.abs(sum_column_states[1:] - sum_column_states[:-1]) > self.dig_tolerance,
+                                   np.abs(sum_column_states[1:] - sum_column_states[:-1]), 0))
+        else:
+            sum_column_states = np.sum(np.where(np.where(np.broadcast_to(np.arange(1, self._underground.shape[2] + 1, 1)
+                                                                         == state[:, :],
+                                                                         self._underground.shape), self._underground, 0)
+                                                , self.cumsum_mine, 0), axis=0)
+            return np.any(np.where(np.abs(sum_column_states[1:] - sum_column_states[:-1]) > self.dig_tolerance,
+                                   np.abs(sum_column_states[1:] - sum_column_states[:-1]), 0))
 
     # ========================  Class Mine  ==================================
 
@@ -406,10 +423,10 @@ some_3d_underground_1 = np.array([[[0.455,  0.579, -0.54, -0.995, -0.771],
                                    [0.316,  0.97,  1.097,  0.234, -0.296]]])
 
 ans1 = Mine(some_2d_underground_1)
-print(ans1.payoff([0, 0, 0, 0, 0]))
+print(ans1.is_dangerous([0, 0, 1, 3, 0]))
 ans2 = Mine(some_3d_underground_1)
-print(ans2.payoff([
-    [1, 2, 0, 0],
-    [0, 0, 0, 0],
-    [0, 0, 0, 1]
+print(ans2.is_dangerous([
+    [[1], [0], [0], [0]],
+    [[0], [0], [0], [0]],
+    [[0], [0], [0], [1]]
 ]))
