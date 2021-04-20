@@ -222,7 +222,32 @@ class Mine(search.Problem):
         """
         state = np.array(state)
 
-        raise NotImplementedError
+        actions_list = []
+
+        if state.ndim == 1:
+            for index in range(state.shape[0]):
+                for block in range(state[index], self._underground.shape[1]):
+                    state[index] = block + 1
+                    if self.is_dangerous(state):
+                        state[index] -= 1
+                        break
+                    else:
+                        actions_list.append((index,))
+
+            return actions_list
+
+        else:
+            for index_1 in range(state.shape[0]):
+                for index_2 in range(state.shape[1]):
+                    for block in range(state[index_1][index_2][0], self._underground.shape[2]):
+                        state[index_1][index_2] = block + 1
+                        if self.is_dangerous(state):
+                            state[index_1][index_2] -= 1
+                            break
+                        else:
+                            actions_list.append((index_1, index_2))
+
+            return actions_list
 
     def result(self, state, action):
         """Return the state that results from executing the given
@@ -425,10 +450,15 @@ some_3d_underground_1 = np.array([[[0.455,  0.579, -0.54, -0.995, -0.771],
                                    [0.316,  0.97,  1.097,  0.234, -0.296]]])
 
 ans1 = Mine(some_2d_underground_1)
-print(ans1.is_dangerous([1, 0, 1, 0, 0]))
+state1 = [0, 0, 0, 0, 0]
+actions1 = ans1.actions(state1)
+print(actions1)
+
 ans2 = Mine(some_3d_underground_1)
-print(ans2.is_dangerous([
-    [[1], [0], [0], [0]],
+state2 = [
     [[0], [0], [0], [0]],
-    [[0], [0], [0], [4]]
-]))
+    [[0], [0], [0], [0]],
+    [[0], [0], [0], [0]]
+]
+actions2 = ans2.actions(state2)
+print(actions2)
