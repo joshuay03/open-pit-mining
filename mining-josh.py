@@ -227,7 +227,7 @@ class Mine(search.Problem):
         if state.ndim == 1:
             for index in range(state.shape[0]):
                 for block in range(state[index], self._underground.shape[1]):
-                    state[index] = block + 1
+                    state[index] += 1
                     if self.is_dangerous(state):
                         state[index] -= 1
                         break
@@ -240,7 +240,7 @@ class Mine(search.Problem):
             for index_1 in range(state.shape[0]):
                 for index_2 in range(state.shape[1]):
                     for block in range(state[index_1][index_2][0], self._underground.shape[2]):
-                        state[index_1][index_2] = block + 1
+                        state[index_1][index_2] += 1
                         if self.is_dangerous(state):
                             state[index_1][index_2] -= 1
                             break
@@ -424,7 +424,7 @@ def find_action_sequence(s0, s1):
     """
     # approach: among all columns for which s0 < s1, pick the column loc
     # with the smallest s0[loc]
-    raise NotImplementedError
+    # assert
 
 
 # Test Cases
@@ -462,3 +462,4 @@ state2 = [
 ]
 actions2 = ans2.actions(state2)
 print(actions2)
+print(some_3d_underground_1.shape)
