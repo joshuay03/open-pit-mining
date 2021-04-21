@@ -424,7 +424,26 @@ def find_action_sequence(s0, s1):
     """
     # approach: among all columns for which s0 < s1, pick the column loc
     # with the smallest s0[loc]
-    # assert
+
+    s0 = np.array(s0)
+    s1 = np.array(s1)
+    actions_list = []
+
+    if s0.ndim == 1 and s1.ndim == 1:
+        while np.any(np.where(s0 < s1, s0, False)):
+            s0_min_index = np.argmin(np.where(s0 < s1, s0, np.argmax(s1) + 1))
+            actions_list.append((s0_min_index, ))
+            s0[s0_min_index] += 1
+
+        return actions_list
+    else:
+        while np.any(np.where(s0 < s1, s0, False)):
+            s0_min_index = np.unravel_index((np.argmin(np.where(s0 < s1, s0, np.argmax(s1) + 1))), s0.shape)
+            actions_list.append(s0_min_index)
+            s0[s0_min_index] += 1
+
+        return actions_list
+
 
 
 # Test Cases
@@ -452,7 +471,6 @@ some_3d_underground_1 = np.array([[[0.455,  0.579, -0.54, -0.995, -0.771],
 ans1 = Mine(some_2d_underground_1)
 state1 = [0, 0, 0, 0, 0]
 actions1 = ans1.actions(state1)
-print(actions1)
 
 ans2 = Mine(some_3d_underground_1)
 state2 = [
@@ -461,5 +479,5 @@ state2 = [
     [[0], [0], [0], [0]]
 ]
 actions2 = ans2.actions(state2)
-print(actions2)
-print(some_3d_underground_1.shape)
+
+print(find_action_sequence([[1], [2], [2], [2], [5]], [[1], [2], [3], [4], [5]]))
