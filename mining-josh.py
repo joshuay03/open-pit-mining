@@ -167,9 +167,11 @@ class Mine(search.Problem):
         if self._underground.ndim == 2:
             self.len_x, self.len_z = self._underground.shape
             self.cumsum_mine = np.cumsum(self._underground, dtype=float, axis=1)
+            self.initial = np.zeros(self.len_x, dtype=int)
         else:
             self.len_x, self.len_y, self.len_z = self._underground.shape
             self.cumsum_mine = np.cumsum(self._underground, dtype=float, axis=2)
+            self.initial = np.zeros((self.len_x, self.len_y), dtype=int)
 
     def surface_neigbhours(self, loc):
         """
@@ -381,7 +383,23 @@ def search_dp_dig_plan(mine):
     best_payoff, best_action_list, best_final_state
 
     """
-    raise NotImplementedError
+    test_state = np.copy(mine.initial)
+    best_final_state = np.copy(test_state)
+    best_payoff = 0
+
+    if test_state.ndim == 1:
+        for x in range(mine.len_x):
+            for y in range(mine.len_z):
+                test_state[x] += 1
+                if mine.payoff(test_state) > best_payoff:
+                    best_final_state = np.copy(test_state)
+                    best_payoff = mine.payoff(best_final_state)
+    if test_state.ndim == 2:
+        pass
+
+    best_action_list = find_action_sequence(mine.initial, best_final_state)
+
+    return best_payoff, best_action_list, best_final_state
 
 
 def search_bb_dig_plan(mine):
@@ -430,20 +448,19 @@ def find_action_sequence(s0, s1):
     actions_list = []
 
     if s0.ndim == 1 and s1.ndim == 1:
-        while np.any(np.where(s0 < s1, s0, False)):
-            s0_min_index = np.argmin(np.where(s0 < s1, s0, np.argmax(s1) + 1))
+        while np.any(np.where(s0 < s1)):
+            s0_min_index = np.argmin(np.where(s0 < s1, s0, np.max(s1)))
             actions_list.append((s0_min_index, ))
             s0[s0_min_index] += 1
 
         return actions_list
     else:
-        while np.any(np.where(s0 < s1, s0, False)):
-            s0_min_index = np.unravel_index((np.argmin(np.where(s0 < s1, s0, np.argmax(s1) + 1))), s0.shape)
+        while np.any(np.where(s0 < s1)):
+            s0_min_index = np.unravel_index((np.argmin(np.where(s0 < s1, s0, np.max(s1) + 1))), s0.shape)
             actions_list.append(s0_min_index)
             s0[s0_min_index] += 1
 
         return actions_list
-
 
 
 # Test Cases
@@ -468,16 +485,5 @@ some_3d_underground_1 = np.array([[[0.455,  0.579, -0.54, -0.995, -0.771],
                                    [-1.936, -3.055, -0.535, -1.561, -1.992],
                                    [0.316,  0.97,  1.097,  0.234, -0.296]]])
 
-ans1 = Mine(some_2d_underground_1)
-state1 = [0, 0, 0, 0, 0]
-actions1 = ans1.actions(state1)
-
-ans2 = Mine(some_3d_underground_1)
-state2 = [
-    [[0], [0], [0], [0]],
-    [[0], [0], [0], [0]],
-    [[0], [0], [0], [0]]
-]
-actions2 = ans2.actions(state2)
-
-print(find_action_sequence([[1], [2], [2], [2], [5]], [[1], [2], [3], [4], [5]]))
+test_mine = Mine(some_2d_underground_1)
+print(search_dp_dig_plan(test_mine))
