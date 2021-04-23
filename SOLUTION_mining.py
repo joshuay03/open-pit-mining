@@ -347,21 +347,11 @@ class Mine(search.Problem):
         state = np.array(state)
 
         if state.ndim == 1:
-            sum_column_states = np.sum(np.where(np.where(np.broadcast_to(np.arange(1, self._underground.shape[1] + 1, 1)
-                                                                         , self._underground.shape) ==
-                                                         state[:, np.newaxis], self._underground, 0), self.cumsum_mine
-                                                , 0), axis=1)
+            return np.any(np.where(np.abs(state[1:] - state[:-1]) > self.dig_tolerance,
+                                   np.abs(state[1:] - state[:-1]), 0))
 
-            return np.any(np.where(np.abs(sum_column_states[1:] - sum_column_states[:-1]) > self.dig_tolerance,
-                                   np.abs(sum_column_states[1:] - sum_column_states[:-1]), 0))
         else:
-            sum_column_states = np.sum(np.where(np.where(np.broadcast_to(np.arange(1, self._underground.shape[2] + 1, 1)
-                                                                         , self._underground.shape) ==
-                                                         state[:, ], self._underground, 0), self.cumsum_mine
-                                                , 0), axis=2)
-
-            return np.any(np.where(np.abs(sum_column_states[1:] - sum_column_states[:-1]) > self.dig_tolerance,
-                                   np.abs(sum_column_states[1:] - sum_column_states[:-1]), 0))
+            pass
 
     # ========================  Class Mine  ==================================
 
@@ -383,18 +373,17 @@ def search_dp_dig_plan(mine):
     best_payoff, best_action_list, best_final_state
 
     """
-    test_state = np.copy(mine.initial)
-    best_final_state = np.copy(test_state)
-    best_payoff = 0
+    best_final_state = np.copy(mine.initial)
+    best_payoff = mine.payoff(best_final_state)
 
-    if test_state.ndim == 1:
-        for x in range(mine.len_x):
-            for y in range(mine.len_z):
-                test_state[x] += 1
-                if mine.payoff(test_state) > best_payoff:
-                    best_final_state = np.copy(test_state)
-                    best_payoff = mine.payoff(best_final_state)
-    if test_state.ndim == 2:
+    if mine.initial.ndim == 1:
+        for state in itertools.product([x for x in range(mine.len_z + 1)], repeat=mine.len_x):
+            if not mine.is_dangerous(state) and mine.payoff(state) > best_payoff:
+                best_final_state = state
+                best_payoff = mine.payoff(state)
+        best_payoff = mine.payoff(best_final_state)
+
+    if mine.initial.ndim == 2:
         pass
 
     best_action_list = find_action_sequence(mine.initial, best_final_state)
@@ -419,7 +408,7 @@ def search_bb_dig_plan(mine):
 
     """
     
-    raise NotImplementedError
+    pass
 
 
 def find_action_sequence(s0, s1):
@@ -485,5 +474,8 @@ some_3d_underground_1 = np.array([[[0.455,  0.579, -0.54, -0.995, -0.771],
                                    [-1.936, -3.055, -0.535, -1.561, -1.992],
                                    [0.316,  0.97,  1.097,  0.234, -0.296]]])
 
-test_mine = Mine(some_2d_underground_1)
-print(search_dp_dig_plan(test_mine))
+test_mine1 = Mine(some_2d_underground_1)
+search_dp_dig_plan(test_mine1)
+# test_mine2 = Mine(some_3d_underground_1)
+# test_mine2.is_dangerous(convert_to_list([[2, 1, 1, 1], [1, 1, 0, 1], [0, 0, 0, 1]]))
+
