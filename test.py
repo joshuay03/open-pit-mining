@@ -44,21 +44,41 @@ some_3d_underground_1 = np.array([[[ 0.455,  0.579, -0.54 , -0.995, -0.771],
                                    ],
                                   [[ -0.857,  0.309, -1.623,  0.364,  0.097],
                                    ]])
+
 some_2d_underground_1 = np.array([
        [-0.814,  0.637, 1.824, -0.563],
        [ 0.559, -0.234, -0.366,  0.07 ],
        [ 0.175, -0.284,  0.026, -0.316],
        [ 0.212,  0.088,  0.304,  0.604],
        [-1.231, 1.558, -0.467, -0.371]])
-tuple_1 = ((1),(1),(1),(1),(1),(1))
-print(sum(tuple_1)) 
 
-# print(some_3d_underground_1[0][0])
+state = np.array([[1],[1],[1]])
+state2 = np.array([1,1,3,1])
+rp1 = np.array(np.arange(len(state)))
 
-# print(np.sum(some_3d_underground_1[1][0],axis=0))
+# state_3d = np.array([[0,0],[0,1],[1,0],[2,0]])
+pay = 0
+
+x = np.array([[ 0,  1,  2],
+              [ 3,  4,  5],
+              [ 6,  7,  8],
+              [ 9, 10, 11]])
+
+print(np.where(np.broadcast_to(np.arange(1, some_3d_underground_1.shape[2] + 1, 1) <= state[:, :, np.newaxis], some_3d_underground_1.shape), some_3d_underground_1, 0))
+
+
+
+# print(np.any(state[0:]))
+print(np.repeat(rp1[:],state2[:]))
+# [1,1,2,2,2,3]
+# print(some_2d_underground_1[rows,[0,1,0,1,2,0]])
+
+# print(some_3d_underground_1[2,0])
+# print(np.sum(some_2d_underground_1[:],axis=1))
 
 # a = [([1,2],(3,4),(5,6)),
 # ((2,2),(3,4),(5,6))]
+
 # b= np.sum(a[0],axis=0)
 # print(b)
 # print(a[0][0])
@@ -89,4 +109,3 @@ print(sum(tuple_1))
 # print(np.broadcast_to(state,shape = b.shape))
 # print(np.broadcast_to(state,shape = ab.shape))
 # # print(ab.ndim)
-
