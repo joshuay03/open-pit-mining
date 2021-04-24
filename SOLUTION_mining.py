@@ -371,24 +371,26 @@ def search_dp_dig_plan(mine):
     """
 
     def search_rec(s):
-        best_final_state = np.copy(s)
-        best_payoff = mine.payoff(best_final_state)
-        best_action_list = []
-        actions = mine.actions(best_final_state)
+        best_final_state = s
+        best_payoff = mine.actions(s)
+        actions = mine.actions(s)
         if not len(actions) == 0:
             C = []
             for action in actions:
-                test_s = np.copy(best_final_state)
+                test_s = np.copy(s)
                 test_s[action] += 1
                 C.append(test_s)
-            payoff_list = []
             for child_state in C:
-                payoff_list.append(mine.payoff(child_state))
-            best_payoff = max(payoff_list)
-            best_final_state = C[payoff_list.index(best_payoff)]
-            best_action_list = find_action_sequence(s, best_final_state)
+                best_payoff, best_action_list, best_final_state = search_rec(child_state)
+
+        best_action_list = find_action_sequence(mine.initial, s)
 
         return best_payoff, best_action_list, best_final_state
+
+
+    return search_rec(mine.initial)
+
+
 
 
 def search_bb_dig_plan(mine):
@@ -475,7 +477,5 @@ some_3d_underground_1 = np.array([[[0.455,  0.579, -0.54, -0.995, -0.771],
                                    [0.316,  0.97,  1.097,  0.234, -0.296]]])
 
 test_mine1 = Mine(some_2d_underground_1)
-search_dp_dig_plan(test_mine1)
 # test_mine2 = Mine(some_3d_underground_1)
-# test_mine2.is_dangerous(convert_to_list([[2, 1, 1, 1], [1, 1, 0, 1], [0, 0, 0, 1]]))
 

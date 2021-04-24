@@ -21,6 +21,17 @@ Here is the console output
     Cache DP function after all calls :   CacheInfo(hits=432, misses=259, maxsize=None, currsize=259)
     DP Best payoff  2.9570000000000003
     DP Best final state  (3, 2, 3, 4, 3)
+    0 0 0 0 0
+    1 0 0 0 0
+    1 1 0 0 0
+    2 1 0 0 0
+    2 1 1 0 0
+    2 2 1 0 0
+    3 2 1 0 0
+    3 2 1 1 0
+    3 2 2 1 0
+    3 2 2 1 1
+    3 2 2 2 1
     DP action list  ((0,), (1,), (0,), (2,), (1,), (0,), (3,), (2,), (4,), (3,), (2,), (4,), (3,), (4,), (3,))
     DP Computation took 0.015289068222045898 seconds
     
