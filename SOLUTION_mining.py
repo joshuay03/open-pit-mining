@@ -228,26 +228,22 @@ class Mine(search.Problem):
 
         if state.ndim == 1:
             for index in range(state.shape[0]):
-                for block in range(state[index], self._underground.shape[1]):
+                if not state[index] >= self.len_z:
                     state[index] += 1
-                    if self.is_dangerous(state):
-                        state[index] -= 1
-                        break
-                    else:
+                    if not self.is_dangerous(state):
                         actions_list.append((index,))
+                    state[index] -= 1
 
             return actions_list
 
         else:
             for index_1 in range(state.shape[0]):
                 for index_2 in range(state.shape[1]):
-                    for block in range(state[index_1][index_2][0], self._underground.shape[2]):
+                    if not state[index_1][index_2] >= self.len_z:
                         state[index_1][index_2] += 1
-                        if self.is_dangerous(state):
-                            state[index_1][index_2] -= 1
-                            break
-                        else:
+                        if not self.is_dangerous(state):
                             actions_list.append((index_1, index_2))
+                        state[index_1][index_2] -= 1
 
             return actions_list
 
@@ -331,7 +327,7 @@ class Mine(search.Problem):
         if state.ndim == 1:
             return np.sum(np.where(np.broadcast_to(np.arange(1, self._underground.shape[1] + 1, 1)
                                                    <= state[:, np.newaxis],
-                                                   self._underground.shape), self._underground, 0))
+                                                   self._underground.shape), self._underground, 0), dtype=float)
         else:
             return np.sum(np.where(np.broadcast_to(np.arange(1, self._underground.shape[2] + 1, 1)
                                                    <= state[:, :, np.newaxis],
@@ -373,22 +369,26 @@ def search_dp_dig_plan(mine):
     best_payoff, best_action_list, best_final_state
 
     """
-    best_final_state = np.copy(mine.initial)
-    best_payoff = mine.payoff(best_final_state)
 
-    if mine.initial.ndim == 1:
-        for state in itertools.product([x for x in range(mine.len_z + 1)], repeat=mine.len_x):
-            if not mine.is_dangerous(state) and mine.payoff(state) > best_payoff:
-                best_final_state = state
-                best_payoff = mine.payoff(state)
+    def search_rec(s):
+        best_final_state = np.copy(s)
         best_payoff = mine.payoff(best_final_state)
+        best_action_list = []
+        actions = mine.actions(best_final_state)
+        if not len(actions) == 0:
+            C = []
+            for action in actions:
+                test_s = np.copy(best_final_state)
+                test_s[action] += 1
+                C.append(test_s)
+            payoff_list = []
+            for child_state in C:
+                payoff_list.append(mine.payoff(child_state))
+            best_payoff = max(payoff_list)
+            best_final_state = C[payoff_list.index(best_payoff)]
+            best_action_list = find_action_sequence(s, best_final_state)
 
-    if mine.initial.ndim == 2:
-        pass
-
-    best_action_list = find_action_sequence(mine.initial, best_final_state)
-
-    return best_payoff, best_action_list, best_final_state
+        return best_payoff, best_action_list, best_final_state
 
 
 def search_bb_dig_plan(mine):
