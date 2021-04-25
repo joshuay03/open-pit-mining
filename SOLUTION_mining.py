@@ -343,11 +343,19 @@ class Mine(search.Problem):
         state = np.array(state)
 
         if state.ndim == 1:
+            # print(state)
+            # print(list(map(self.surface_neigbhours, list(zip(*np.where(state))))))
+
+
             return np.any(np.where(np.abs(state[1:] - state[:-1]) > self.dig_tolerance,
                                    np.abs(state[1:] - state[:-1]), 0))
 
         else:
-            pass
+            # print(state)
+            # print(list(map(self.surface_neigbhours, list(zip(*np.where(state))))))
+
+
+            return np.where(self.surface_neigbhours((0, 0)))
 
     # ========================  Class Mine  ==================================
 
@@ -369,31 +377,32 @@ def search_dp_dig_plan(mine):
     best_payoff, best_action_list, best_final_state
 
     """
-    results = {}
-    initial = tuple(mine.initial)
-    results.update({initial: mine.payoff(initial)})
+    state_payoff_dict = {}
+    initial = convert_to_tuple(mine.initial)
+    state_payoff_dict.update({initial: mine.payoff(initial)})
 
     @functools.lru_cache(maxsize=10000)
     def search_rec(s):
+        # print(s)
+        # print(state_payoff_dict)
         C = []
         actions = mine.actions(s)
         if not len(actions) == 0:
             for action in actions:
                 C.append(mine.result(s, action))
         for child_state in C:
-            s = child_state
-            results.update({s: mine.payoff(s)})
+            child_payoff = mine.payoff(child_state)
+            state_payoff_dict.update({tuple(child_state): child_payoff})
             best_payoff, best_action_list, best_final_state = search_rec(tuple(child_state))
 
-        best_payoff = max(results.values())
-        for k, v in results.items():
+        best_payoff = max(state_payoff_dict.values())
+        for k, v in state_payoff_dict.items():
             if v == best_payoff:
                 best_final_state = k
-        best_action_list = []
-
+        best_action_list = find_action_sequence(mine.initial, best_final_state)
         return best_payoff, best_action_list, best_final_state
 
-    return search_rec(tuple(initial))
+    return search_rec(convert_to_tuple(initial))
 
 
 
@@ -481,11 +490,15 @@ some_3d_underground_1 = np.array([[[0.455,  0.579, -0.54, -0.995, -0.771],
                                    [-1.936, -3.055, -0.535, -1.561, -1.992],
                                    [0.316,  0.97,  1.097,  0.234, -0.296]]])
 
-test_mine1 = Mine(np.array([
-       [-0.814],
-       [0.559],
-       [0.175]
-]))
-print(search_dp_dig_plan(test_mine1))
-# test_mine2 = Mine(some_3d_underground_1)
+test_mine1 = Mine(some_2d_underground_1)
+print(test_mine1.is_dangerous([3, 2, 4, 3, 3]))
+print("-" * 30)
+test_mine2 = Mine(some_3d_underground_1)
+print(test_mine2.is_dangerous([(2, 1, 1, 1), (1, 1, 0, 1), (0, 0, 0, 1)]))
+
+search_dp_dig_plan(Mine(np.array([
+        [-0.814],
+        [0.559],
+        [0.175],
+])))
 
