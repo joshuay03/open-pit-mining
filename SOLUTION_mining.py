@@ -369,26 +369,31 @@ def search_dp_dig_plan(mine):
     best_payoff, best_action_list, best_final_state
 
     """
+    results = {}
+    initial = tuple(mine.initial)
+    results.update({initial: mine.payoff(initial)})
 
+    @functools.lru_cache(maxsize=10000)
     def search_rec(s):
-        best_final_state = s
-        best_payoff = mine.actions(s)
+        C = []
         actions = mine.actions(s)
         if not len(actions) == 0:
-            C = []
             for action in actions:
-                test_s = np.copy(s)
-                test_s[action] += 1
-                C.append(test_s)
-            for child_state in C:
-                best_payoff, best_action_list, best_final_state = search_rec(child_state)
+                C.append(mine.result(s, action))
+        for child_state in C:
+            s = child_state
+            results.update({s: mine.payoff(s)})
+            best_payoff, best_action_list, best_final_state = search_rec(tuple(child_state))
 
-        best_action_list = find_action_sequence(mine.initial, s)
+        best_payoff = max(results.values())
+        for k, v in results.items():
+            if v == best_payoff:
+                best_final_state = k
+        best_action_list = []
 
         return best_payoff, best_action_list, best_final_state
 
-
-    return search_rec(mine.initial)
+    return search_rec(tuple(initial))
 
 
 
@@ -476,6 +481,11 @@ some_3d_underground_1 = np.array([[[0.455,  0.579, -0.54, -0.995, -0.771],
                                    [-1.936, -3.055, -0.535, -1.561, -1.992],
                                    [0.316,  0.97,  1.097,  0.234, -0.296]]])
 
-test_mine1 = Mine(some_2d_underground_1)
+test_mine1 = Mine(np.array([
+       [-0.814],
+       [0.559],
+       [0.175]
+]))
+print(search_dp_dig_plan(test_mine1))
 # test_mine2 = Mine(some_3d_underground_1)
 
