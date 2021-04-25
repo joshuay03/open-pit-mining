@@ -168,7 +168,7 @@ class Mine(search.Problem):
             self.len_x, self.len_z = self._underground.shape
             self.cumsum_mine = np.cumsum(self._underground, dtype=float, axis=1)
             self.initial = np.zeros(self.len_x, dtype=int)
-        else:
+        elif self._underground.ndim == 3:
             self.len_x, self.len_y, self.len_z = self._underground.shape
             self.cumsum_mine = np.cumsum(self._underground, dtype=float, axis=2)
             self.initial = np.zeros((self.len_x, self.len_y), dtype=int)
@@ -226,13 +226,13 @@ class Mine(search.Problem):
 
         actions_list = []
 
-        if state.ndim == 1:
+        if self._underground.ndim == 2:
             for index in range(state.shape[0]):
                 if not state[index] >= self.len_z:
-                    state[index] += 1
-                    if not self.is_dangerous(state):
+                    state_copy = np.copy(state)
+                    state_copy[index] += 1
+                    if not self.is_dangerous(state_copy):
                         actions_list.append((index,))
-                    state[index] -= 1
 
             return actions_list
 
@@ -240,10 +240,10 @@ class Mine(search.Problem):
             for index_1 in range(state.shape[0]):
                 for index_2 in range(state.shape[1]):
                     if not state[index_1][index_2] >= self.len_z:
-                        state[index_1][index_2] += 1
+                        state_copy = np.copy(state)
+                        state_copy[index_1][index_2] += 1
                         if not self.is_dangerous(state):
                             actions_list.append((index_1, index_2))
-                        state[index_1][index_2] -= 1
 
             return actions_list
 
@@ -342,20 +342,16 @@ class Mine(search.Problem):
         # convert to np.array in order to use numpy operators
         state = np.array(state)
 
-        if state.ndim == 1:
-            # print(state)
-            # print(list(map(self.surface_neigbhours, list(zip(*np.where(state))))))
-
-
+        if self._underground.ndim == 2:
             return np.any(np.where(np.abs(state[1:] - state[:-1]) > self.dig_tolerance,
                                    np.abs(state[1:] - state[:-1]), 0))
 
-        else:
-            # print(state)
-            # print(list(map(self.surface_neigbhours, list(zip(*np.where(state))))))
-
-
-            return np.where(self.surface_neigbhours((0, 0)))
+        if self._underground.ndim == 3:
+            return np.any(np.where(np.abs(state[:-1, :-1] - state[1:, 1:]) > self.dig_tolerance, True, False)) \
+                   or np.any(np.where(np.abs(np.rot90(state)[:-1, :-1] - np.rot90(state)[1:, 1:]) > self.dig_tolerance,
+                                      True, False)) or np.any(np.where(np.abs(np.diff(state)) > self.dig_tolerance,
+                                                                       True, False)) \
+                   or np.any(np.where(np.abs(np.diff(state, axis=0)) > self.dig_tolerance, True, False))
 
     # ========================  Class Mine  ==================================
 
@@ -381,30 +377,37 @@ def search_dp_dig_plan(mine):
     initial = convert_to_tuple(mine.initial)
     state_payoff_dict.update({initial: mine.payoff(initial)})
 
-    @functools.lru_cache(maxsize=10000)
+    """
+    computes recursively a best solution starting from the state s
+
+    Parameters
+    ----------
+    s : the state from which the search begins
+
+    Raises
+    ------
+    AssertionError
+        when the given state is of the incorrect dimension
+    """
+    @functools.lru_cache(maxsize=None)
     def search_rec(s):
+        assert np.array(s).ndim == 2 or 3
         # print(s)
-        # print(state_payoff_dict)
-        C = []
         actions = mine.actions(s)
         if not len(actions) == 0:
             for action in actions:
-                C.append(mine.result(s, action))
-        for child_state in C:
-            child_payoff = mine.payoff(child_state)
-            state_payoff_dict.update({tuple(child_state): child_payoff})
-            best_payoff, best_action_list, best_final_state = search_rec(tuple(child_state))
+                child_state = mine.result(s, action)
+                if child_state not in state_payoff_dict:
+                    state_payoff_dict[tuple(child_state)] = mine.payoff(child_state)
+                    search_rec(tuple(child_state))
 
-        best_payoff = max(state_payoff_dict.values())
-        for k, v in state_payoff_dict.items():
-            if v == best_payoff:
-                best_final_state = k
-        best_action_list = find_action_sequence(mine.initial, best_final_state)
-        return best_payoff, best_action_list, best_final_state
+    search_rec(convert_to_tuple(initial))
 
-    return search_rec(convert_to_tuple(initial))
+    best_payoff = max(state_payoff_dict.values())
+    best_final_state = dict(map(reversed, state_payoff_dict.items()))[best_payoff]
+    best_action_list = find_action_sequence(mine.initial, best_final_state)
 
-
+    return best_payoff, best_action_list, best_final_state
 
 
 def search_bb_dig_plan(mine):
@@ -424,7 +427,7 @@ def search_bb_dig_plan(mine):
 
     """
     
-    pass
+    assert NotImplementedError
 
 
 def find_action_sequence(s0, s1):
@@ -452,15 +455,15 @@ def find_action_sequence(s0, s1):
     s1 = np.array(s1)
     actions_list = []
 
-    if s0.ndim == 1 and s1.ndim == 1:
-        while np.any(np.where(s0 < s1)):
+    if s0.ndim == 1:
+        while np.any(np.where(s0 < s1, True, False)):
             s0_min_index = np.argmin(np.where(s0 < s1, s0, np.max(s1)))
             actions_list.append((s0_min_index, ))
             s0[s0_min_index] += 1
 
         return actions_list
-    else:
-        while np.any(np.where(s0 < s1)):
+    elif s0.ndim == 2:
+        while np.any(np.where(s0 < s1, True, False)):
             s0_min_index = np.unravel_index((np.argmin(np.where(s0 < s1, s0, np.max(s1) + 1))), s0.shape)
             actions_list.append(s0_min_index)
             s0[s0_min_index] += 1
@@ -468,37 +471,10 @@ def find_action_sequence(s0, s1):
         return actions_list
 
 
-# Test Cases
-some_2d_underground_1 = np.array([
-       [-0.814,  0.637, 1.824, -0.563],
-       [0.559, -0.234, -0.366,  0.07],
-       [0.175, -0.284,  0.026, -0.316],
-       [0.212,  0.088,  0.304,  0.604],
-       [-1.231, 1.558, -0.467, -0.371]])
+def my_team():
+    """
+    Return the list of the team members of this assignment submission as a list
+    of triplet of the form (student_number, first_name, last_name)
 
-
-some_3d_underground_1 = np.array([[[0.455,  0.579, -0.54, -0.995, -0.771],
-                                   [0.049,  1.311, -0.061,  0.185, -1.959],
-                                   [2.38, -1.404,  1.518, -0.856,  0.658],
-                                   [0.515, -0.236, -0.466, -1.241, -0.354]],
-                                  [[0.801,  0.072, -2.183,  0.858, -1.504],
-                                   [-0.09, -1.191, -1.083,  0.78, -0.763],
-                                   [-1.815, -0.839,  0.457, -1.029,  0.915],
-                                   [0.708, -0.227,  0.874,  1.563, -2.284]],
-                                  [[-0.857,  0.309, -1.623,  0.364,  0.097],
-                                   [-0.876,  1.188, -0.16,  0.888, -0.546],
-                                   [-1.936, -3.055, -0.535, -1.561, -1.992],
-                                   [0.316,  0.97,  1.097,  0.234, -0.296]]])
-
-test_mine1 = Mine(some_2d_underground_1)
-print(test_mine1.is_dangerous([3, 2, 4, 3, 3]))
-print("-" * 30)
-test_mine2 = Mine(some_3d_underground_1)
-print(test_mine2.is_dangerous([(2, 1, 1, 1), (1, 1, 0, 1), (0, 0, 0, 1)]))
-
-search_dp_dig_plan(Mine(np.array([
-        [-0.814],
-        [0.559],
-        [0.175],
-])))
-
+    """
+    return [(10404074, 'Dimithri', 'Young'), (10240977, 'Jun', 'Chen')]
